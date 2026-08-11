@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fruit Chop</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+}
+
+body {
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background: #111;
+}
+
+#game {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background:
+        linear-gradient(rgba(0,0,0,.15), rgba(0,0,0,.35)),
+        linear-gradient(135deg, #168b45, #063b24);
+    touch-action: none;
+}
+
+/* START SCREEN */
+#startScreen,
+#gameOver {
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: rgba(0,0,0,.85);
+    color: white;
+    padding: 20px;
+}
+
+#startScreen h1 {
+    font-size: clamp(35px, 8vw, 65px);
+    margin-bottom: 15px;
+}
+
+#startScreen p {
+    font-size: 19px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+/* NAME */
+#playerName {
+    width: min(320px, 85vw);
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    text-align: center;
+    outline: none;
+    margin-bottom: 15px;
+}
+
+/* BUTTON */
+button {
+    border: none;
+    border-radius: 15px;
+    padding: 14px 32px;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    background: #ffcc00;
+    color: #222;
+    box-shadow: 0 6px 0 #b38d00;
+}
+
+button:active {
+    transform: translateY(5px);
+    box-shadow: 0 1px 0 #b38d00;
+}
+
+#startButton {
+    display: none;
+}
+
+/* HUD */
+#hud {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    right: 15px;
+    z-index: 50;
+    display: flex;
+    justify-content: space-between;
+    color: white;
+    font-size: 22px;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px #000;
+}
+
+#soundBtn {
+    position: absolute;
+    top: 60px;
+    right: 15px;
+    z-index: 60;
+    padding: 8px 14px;
+    font-size: 15px;
+}
+
+/* FRUIT */
+.fruit {
+    position: absolute;
+    width: 65px;
+    height: 65px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 52px;
+    pointer-events: none;
+    filter: drop-shadow(0 5px 4px rgba(0,0,0,.4));
+}
+
+/* SLICE */
+.sliceLine {
+    position: absolute;
+    height: 4px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 0 8px white;
+    pointer-events: none;
+    z-index: 40;
+}
+
+/* GAME OVER */
+#gameOver {
+    display: none;
+}
+
+#gameOver h2 {
+    font-size: 50px;
+    color: #ff4444;
+    margin-bottom: 10px;
+}
+
+#finalScore {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+#bestScore {
+    color: #ffcc00;
+    font-size: 18px;
+    margin-bottom: 15px;
+}
+
+/* LEADERBOARD */
+#leaderboard {
+    width: min(420px, 92vw);
+    background: rgba(255,255,255,.08);
+    border-radius: 14px;
+    padding: 12px;
+    margin-top: 15px;
+}
+
+#leaderboard h3 {
+    color: #ffcc00;
+    margin-bottom: 8px;
+}
+
+#leaderList {
+    max-height: 190px;
+    overflow-y: auto;
+}
+
+.leaderRow {
+    display: flex;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255,255,255,.12);
+    font-size: 15px;
+}
+
+.rank {
+    width: 40px;
+}
+
+.player {
+    flex: 1;
+    text-align: left;
+}
+
+.playerScore {
+    width: 50px;
+    text-align: right;
+    font-weight: bold;
+}
+
+/* SCORE */
+.floatingScore {
+    position: absolute;
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    pointer-events: none;
+    animation: scoreUp .6s forwards;
+    z-index: 70;
+}
+
+@keyframes scoreUp {
+    from {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+}
+
+/* EXPLOSION */
+.explosion {
+    position: absolute;
+    font-size: 70px;
+    pointer-events: none;
+    animation: boom .5s forwards;
+    z-index: 80;
+}
+
+@keyframes boom {
+    from {
+        transform: scale(.5);
+        opacity: 1;
+    }
+    to {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+    <!-- START -->
+    <div id="startScreen">
+
+        <h1>🍉 Fruit Chop 🍎</h1>
+
+        <p>
+            Thank you for playing this game!<br>
+            <b>Made by Bhaskar Jha ❤️</b>
+        </p>
+
+        <input
+            id="playerName"
+            type="text"
+            maxlength="18"
+            placeholder="Enter your name"
+            autocomplete="off"
+        >
+
+        <button
+            id="okButton"
+            type="button"
+            onclick="confirmName()"
+        >
+            OK
+        </button>
+
+        <button
+            id="startButton"
+            type="button"
+            onclick="startGame()"
+        >
+            START GAME
+        </button>
+
+    </div>
+
+
+    <!-- HUD -->
+    <div id="hud">
+
+        <div>
+            ⭐ Score:
+            <span id="score">0</span>
+        </div>
+
+        <div>
+            ❤️ Lives:
+            <span id="lives">3</span>
+        </div>
+
+    </div>
+
+
+    <!-- SOUND -->
+    <button
+        id="soundBtn"
+        onclick="toggleSound()"
+    >
+        🔊 Sound ON
+    </button>
+
+
+    <!-- GAME OVER -->
+    <div id="gameOver">
+
+        <h2>GAME OVER 💀</h2>
+
+        <div id="finalScore">
+            Your Score: 0
+        </div>
+
+        <div id="bestScore">
+            🏆 Best Score: 0
+        </div>
+
+        <button onclick="playAgain()">
+            PLAY AGAIN
+        </button>
+
+        <div id="leaderboard">
+
+            <h3>
+                🏆 LEADERBOARD — TOP 100
+            </h3>
+
+            <div id="leaderList"></div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* =========================================
+   VARIABLES
+========================================= */
+
+const game = document.getElementById("game");
+
+let playerName = "";
+let score = 0;
+let lives = 3;
+let gameRunning = false;
+let soundOn = true;
+
+let fruitInterval = null;
+let gameAnimation = null;
+
+let isSwiping = false;
+let lastX = 0;
+let lastY = 0;
+
+const fruits = [
+    "🍎",
+    "🍊",
+    "🍉",
+    "🍌",
+    "🍓",
+    "🍍",
+    "🥝",
+    "🍇"
+];
+
+
+/* =========================================
+   NAME
+========================================= */
+
+function confirmName() {
+
+    const input =
+        document.getElementById("playerName");
+
+    const name =
+        input.value.trim();
+
+    if (name === "") {
+
+        alert("Please enter your name first!");
+
+        input.focus();
+
+        return;
+    }
+
+    playerName = name;
+
+    input.disabled = true;
+
+    document.getElementById("okButton").style.display = "none";
+
+    document.getElementById("startButton").style.display = "block";
+}
+
+
+/* ENTER = OK */
+document.getElementById("playerName").addEventListener(
+    "keydown",
+    function(e) {
+
+        if (e.key === "Enter") {
+            confirmName();
+        }
+
+    }
+);
+
+
+/* =========================================
+   AUDIO
+========================================= */
+
+let audioContext = null;
+
+function initAudio() {
+
+    if (!audioContext) {
+
+        audioContext =
+            new (window.AudioContext ||
+            window.webkitAudioContext)();
+
+    }
+
+    if (audioContext.state === "suspended") {
+        audioContext.resume();
+    }
+}
+
+
+function playSliceSound() {
+
+    if (!soundOn) return;
+
+    initAudio();
+
+    const osc =
+        audioContext.createOscillator();
+
+    const gain =
+        audioContext.createGain();
+
+    osc.type = "sawtooth";
+
+    osc.frequency.setValueAtTime(
+        700,
+        audioContext.currentTime
+    );
+
+    osc.frequency.exponentialRampToValueAtTime(
+        150,
+        audioContext.currentTime + 0.1
+    );
+
+    gain.gain.setValueAtTime(
+        0.16,
+        audioContext.currentTime
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+        0.001,
+        audioContext.currentTime + 0.1
+    );
+
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc.start();
+
+    osc.stop(
+        audioContext.currentTime + 0.1
+    );
+}
+
+
+function playBombSound() {
+
+    if (!soundOn) return;
+
+    initAudio();
+
+    const osc =
+        audioContext.createOscillator();
+
+    const gain =
+        audioContext.createGain();
+
+    osc.type = "square";
+
+    osc.frequency.setValueAtTime(
+        100,
+        audioContext.currentTime
+    );
+
+    osc.frequency.exponentialRampToValueAtTime(
+        35,
+        audioContext.currentTime + 0.4
+    );
+
+    gain.gain.setValueAtTime(
+        0.35,
+        audioContext.currentTime
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+        0.001,
+        audioContext.currentTime + 0.4
+    );
+
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc.start();
+
+    osc.stop(
+        audioContext.currentTime + 0.4
+    );
+}
+
+
+function toggleSound() {
+
+    soundOn = !soundOn;
+
+    document.getElementById("soundBtn").innerText =
+        soundOn
+        ? "🔊 Sound ON"
+        : "🔇 Sound OFF";
+}
+
+
+/* =========================================
+   START GAME
+========================================= */
+
+function startGame() {
+
+    if (playerName === "") {
+
+        alert("Please enter your name first.");
+
+        return;
+    }
+
+    initAudio();
+
+    score = 0;
+    lives = 3;
+    gameRunning = true;
+
+    document.getElementById("score").innerText = "0";
+    document.getElementById("lives").innerText = "3";
+
+    document.getElementById("startScreen").style.display = "none";
+    document.getElementById("gameOver").style.display = "none";
+
+    document.querySelectorAll(".fruit").forEach(
+        fruit => fruit.remove()
+    );
+
+    clearInterval(fruitInterval);
+
+    fruitInterval = setInterval(
+        createFruit,
+        800
+    );
+
+    cancelAnimationFrame(gameAnimation);
+
+    gameAnimation =
+        requestAnimationFrame(update);
+}
+
+
+function playAgain() {
+
+    startGame();
+}
+
+
+/* =========================================
+   CREATE FRUIT
+========================================= */
+
+function createFruit() {
+
+    if (!gameRunning) return;
+
+    const fruit =
+        document.createElement("div");
+
+    fruit.className = "fruit";
+
+    const isBomb =
+        Math.random() < 0.13;
+
+    if (isBomb) {
+
+        fruit.innerText = "💣";
+        fruit.dataset.type = "bomb";
+
+    } else {
+
+        fruit.innerText =
+            fruits[
+                Math.floor(
+                    Math.random() * fruits.length
+                )
+            ];
+
+        fruit.dataset.type = "fruit";
+    }
+
+    fruit.dataset.cut = "false";
+
+    const x =
+        Math.random() *
+        (window.innerWidth - 80);
+
+    const startY =
+        window.innerHeight + 20;
+
+    fruit.style.left = x + "px";
+    fruit.style.top = startY + "px";
+
+    fruit.velocityY =
+        13 + Math.random() * 3;
+
+    fruit.gravity =
+        0.20 + Math.random() * 0.05;
+
+    fruit.horizontalSpeed =
+        (Math.random() - 0.5) * 2.5;
+
+    fruit.rotation =
+        (Math.random() - 0.5) * 8;
+
+    game.appendChild(fruit);
+}
+
+
+/* =========================================
+   GAME PHYSICS
+========================================= */
+
+function update() {
+
+    if (!gameRunning) return;
+
+    document.querySelectorAll(".fruit").forEach(
+        fruit => {
+
+            let top =
+                parseFloat(fruit.style.top);
+
+            let left =
+                parseFloat(fruit.style.left);
+
+            fruit.velocityY -= fruit.gravity;
+
+            top -= fruit.velocityY;
+
+            left += fruit.horizontalSpeed;
+
+            fruit.style.top = top + "px";
+            fruit.style.left = left + "px";
+
+            fruit.rotation +=
+                fruit.horizontalSpeed * 0.5;
+
+            fruit.style.transform =
+                `rotate(${fruit.rotation}deg)`;
+
+            if (
+                top >
+                window.innerHeight + 100
+            ) {
+
+                if (
+                    fruit.dataset.type === "fruit"
+                ) {
+
+                    lives--;
+
+                    document.getElementById("lives").innerText =
+                        lives;
+
+                    if (lives <= 0) {
+                        endGame();
+                    }
+                }
+
+                fruit.remove();
+            }
+
+        }
+    );
+
+    gameAnimation =
+        requestAnimationFrame(update);
+}
+
+
+/* =========================================
+   CUT FRUIT
+========================================= */
+
+function cutFruit(fruit) {
+
+    if (!gameRunning) return;
+
+    if (fruit.dataset.cut === "true") {
+        return;
+    }
+
+    fruit.dataset.cut = "true";
+
+    if (fruit.dataset.type === "bomb") {
+
+        bombExplosion(
+            fruit.offsetLeft,
+            fruit.offsetTop
+        );
+
+        playBombSound();
+
+        fruit.remove();
+
+        lives = 0;
+
+        document.getElementById("lives").innerText = "0";
+
+        endGame();
+
+        return;
+    }
+
+    score++;
+
+    document.getElementById("score").innerText =
+        score;
+
+    playSliceSound();
+
+    showScore(
+        fruit.offsetLeft,
+        fruit.offsetTop
+    );
+
+    fruit.remove();
+}
+
+
+/* =========================================
+   SCORE EFFECT
+========================================= */
+
+function showScore(x, y) {
+
+    const text =
+        document.createElement("div");
+
+    text.className = "floatingScore";
+
+    text.innerText = "+1";
+
+    text.style.left = x + "px";
+    text.style.top = y + "px";
+
+    game.appendChild(text);
+
+    setTimeout(
+        () => text.remove(),
+        600
+    );
+}
+
+
+/* =========================================
+   BOMB
+========================================= */
+
+function bombExplosion(x, y) {
+
+    const explosion =
+        document.createElement("div");
+
+    explosion.className = "explosion";
+
+    explosion.innerText = "💥";
+
+    explosion.style.left = x + "px";
+    explosion.style.top = y + "px";
+
+    game.appendChild(explosion);
+
+    setTimeout(
+        () => explosion.remove(),
+        500
+    );
+}
+
+
+/* =========================================
+   SWIPE
+========================================= */
+
+game.addEventListener(
+    "pointerdown",
+    function(e) {
+
+        if (!gameRunning) return;
+
+        isSwiping = true;
+
+        lastX = e.clientX;
+        lastY = e.clientY;
+
+        e.preventDefault();
+    },
+    { passive: false }
+);
+
+
+game.addEventListener(
+    "pointermove",
+    function(e) {
+
+        if (!gameRunning || !isSwiping) {
+            return;
+        }
+
+        e.preventDefault();
+
+        const x = e.clientX;
+        const y = e.clientY;
+
+        const distance =
+            Math.hypot(
+                x - lastX,
+                y - lastY
+            );
+
+        if (distance >= 12) {
+
+            createSliceLine(
+                lastX,
+                lastY,
+                x,
+                y
+            );
+
+            checkSwipeCollision(
+                lastX,
+                lastY,
+                x,
+                y
+            );
+
+            lastX = x;
+            lastY = y;
+        }
+
+    },
+    { passive: false }
+);
+
+
+game.addEventListener(
+    "pointerup",
+    function() {
+
+        isSwiping = false;
+
+    }
+);
+
+
+game.addEventListener(
+    "pointercancel",
+    function() {
+
+        isSwiping = false;
+
+    }
+);
+
+
+/* =========================================
+   SLICE LINE
+========================================= */
+
+function createSliceLine(
+    x1,
+    y1,
+    x2,
+    y2
+) {
+
+    const line =
+        document.createElement("div");
+
+    line.className = "sliceLine";
+
+    const length =
+        Math.hypot(
+            x2 - x1,
+            y2 - y1
+        );
+
+    const angle =
+        Math.atan2(
+            y2 - y1,
+            x2 - x1
+        ) * 180 / Math.PI;
+
+    line.style.width =
+        length + "px";
+
+    line.style.left =
+        x1 + "px";
+
+    line.style.top =
+        y1 + "px";
+
+    line.style.transform =
+        `rotate(${angle}deg)`;
+
+    line.style.transformOrigin =
+        "0 50%";
+
+    game.appendChild(line);
+
+    setTimeout(
+        () => line.remove(),
+        50
+    );
+}
+
+
+/* =========================================
+   COLLISION
+========================================= */
+
+function checkSwipeCollision(
+    x1,
+    y1,
+    x2,
+    y2
+) {
+
+    document.querySelectorAll(".fruit").forEach(
+        fruit => {
+
+            if (
+                fruit.dataset.cut === "true"
+            ) {
+                return;
+            }
+
+            const rect =
+                fruit.getBoundingClientRect();
+
+            const centerX =
+                rect.left + rect.width / 2;
+
+            const centerY =
+                rect.top + rect.height / 2;
+
+            const distance =
+                pointToLineDistance(
+                    centerX,
+                    centerY,
+                    x1,
+                    y1,
+                    x2,
+                    y2
+                );
+
+            /*
+               Small collision area
+            */
+
+            if (distance < 22) {
+
+                cutFruit(fruit);
+            }
+
+        }
+    );
+}
+
+
+/* =========================================
+   DISTANCE
+========================================= */
+
+function pointToLineDistance(
+    px,
+    py,
+    x1,
+    y1,
+    x2,
+    y2
+) {
+
+    const A = px - x1;
+    const B = py - y1;
+    const C = x2 - x1;
+    const D = y2 - y1;
+
+    const dot =
+        A * C + B * D;
+
+    const lenSq =
+        C * C + D * D;
+
+    let param =
+        lenSq !== 0
+        ? dot / lenSq
+        : -1;
+
+    let xx;
+    let yy;
+
+    if (param < 0) {
+
+        xx = x1;
+        yy = y1;
+
+    } else if (param > 1) {
+
+        xx = x2;
+        yy = y2;
+
+    } else {
+
+        xx =
+            x1 + param * C;
+
+        yy =
+            y1 + param * D;
+    }
+
+    return Math.hypot(
+        px - xx,
+        py - yy
+    );
+}
+
+
+/* =========================================
+   GAME OVER
+========================================= */
+
+function endGame() {
+
+    if (!gameRunning) return;
+
+    gameRunning = false;
+
+    clearInterval(fruitInterval);
+
+    cancelAnimationFrame(gameAnimation);
+
+    isSwiping = false;
+
+    document.querySelectorAll(".fruit").forEach(
+        fruit => fruit.remove()
+    );
+
+    saveScore();
+
+    document.getElementById("finalScore").innerText =
+        "Your Score: " + score;
+
+    const board =
+        getLeaderboard();
+
+    const best =
+        board.length > 0
+        ? board[0].score
+        : score;
+
+    document.getElementById("bestScore").innerText =
+        "🏆 Best Score: " + best;
+
+    showLeaderboard();
+
+    document.getElementById("gameOver").style.display =
+        "flex";
+}
+
+
+/* =========================================
+   LEADERBOARD STORAGE
+========================================= */
+
+function getLeaderboard() {
+
+    try {
+
+        return JSON.parse(
+            localStorage.getItem(
+                "fruitChopLeaderboard"
+            )
+        ) || [];
+
+    } catch (e) {
+
+        return [];
+    }
+}
+
+
+function saveScore() {
+
+    let board =
+        getLeaderboard();
+
+    board.push({
+        name: playerName,
+        score: score
+    });
+
+    board.sort(
+        (a, b) => b.score - a.score
+    );
+
+    board =
+        board.slice(0, 100);
+
+    localStorage.setItem(
+        "fruitChopLeaderboard",
+        JSON.stringify(board)
+    );
+}
+
+
+/* =========================================
+   SHOW LEADERBOARD
+========================================= */
+
+function showLeaderboard() {
+
+    const board =
+        getLeaderboard();
+
+    const list =
+        document.getElementById(
+            "leaderList"
+        );
+
+    if (board.length === 0) {
+
+        list.innerHTML =
+            "No scores yet.";
+
+        return;
+    }
+
+    list.innerHTML =
+        board.map(
+            (item, index) => {
+
+                let rank =
+                    index + 1;
+
+                if (index === 0) {
+                    rank = "🥇";
+                }
+
+                if (index === 1) {
+                    rank = "🥈";
+                }
+
+                if (index === 2) {
+                    rank = "🥉";
+                }
+
+                return `
+                    <div class="leaderRow">
+
+                        <div class="rank">
+                            ${rank}
+                        </div>
+
+                
